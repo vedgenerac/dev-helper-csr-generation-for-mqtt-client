@@ -3,17 +3,15 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
-const cors = require('cors'); // Add CORS package
-
+const cors = require('cors');
 const execAsync = promisify(exec);
 const app = express();
 const PORT = 3000;
 
-// Enable CORS for specific origin or all origins
 app.use(cors({
-    origin: 'http://localhost:8080', // Allow requests from this origin (adjust if needed)
-    methods: ['GET', 'POST', 'OPTIONS'], // Allow these HTTP methods
-    allowedHeaders: ['Content-Type'], // Allow these headers
+    origin: 'http://localhost:8080',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
 }));
 
 app.use(express.json());
@@ -41,8 +39,10 @@ app.post('/api/generate-csr', async (req, res) => {
 
         const tempDir = path.join(__dirname, 'temp', Date.now().toString());
         fs.mkdirSync(tempDir, { recursive: true });
+
         const privateKeyPath = path.join(tempDir, 'private-key.pem');
         const csrPath = path.join(tempDir, 'csr.pem');
+        const configPath = path.join(tempDir, 'openssl.cnf');
 
         try {
             // Generate ECC private key
@@ -55,9 +55,34 @@ app.post('/api/generate-csr', async (req, res) => {
             if (serialNumber) subject += `/serialNumber=${serialNumber}`;
             if (email) subject += `/emailAddress=${email}`;
 
-            // Generate CSR
+            // Create OpenSSL config file with Key Usage extensions
+            const opensslConfig = `
+[ req ]
+default_bits       = 2048
+distinguished_name = req_distinguished_name
+req_extensions     = v3_req
+prompt             = no
+
+[ req_distinguished_name ]
+C  = ${country}
+ST = ${state}
+L  = ${locality}
+O  = ${organization}
+${organizationalUnit ? `OU = ${organizationalUnit}` : ''}
+CN = ${commonName}
+${serialNumber ? `serialNumber = ${serialNumber}` : ''}
+${email ? `emailAddress = ${email}` : ''}
+
+[ v3_req ]
+keyUsage = critical, digitalSignature, keyAgreement
+extendedKeyUsage = clientAuth
+`;
+
+            fs.writeFileSync(configPath, opensslConfig);
+
+            // Generate CSR with extensions
             await execAsync(
-                `openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj "${subject}"`
+                `openssl req -new -key ${privateKeyPath} -out ${csrPath} -config ${configPath}`
             );
 
             // Read files
@@ -69,25 +94,35 @@ app.post('/api/generate-csr', async (req, res) => {
                 `openssl ec -in ${privateKeyPath} -pubout 2>/dev/null`
             );
 
+            // Verify CSR includes extensions
+            const { stdout: csrText } = await execAsync(
+                `openssl req -text -noout -in ${csrPath}`
+            );
+
             // Cleanup
             fs.unlinkSync(privateKeyPath);
             fs.unlinkSync(csrPath);
+            fs.unlinkSync(configPath);
             fs.rmdirSync(tempDir);
 
             res.json({
                 success: true,
                 privateKey,
                 publicKey,
-                csr
+                csr,
+                csrDetails: csrText // Include this so you can verify the extensions
             });
+
         } catch (error) {
             try {
                 if (fs.existsSync(privateKeyPath)) fs.unlinkSync(privateKeyPath);
                 if (fs.existsSync(csrPath)) fs.unlinkSync(csrPath);
+                if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
                 if (fs.existsSync(tempDir)) fs.rmdirSync(tempDir);
             } catch (e) { }
             throw error;
         }
+
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({
@@ -100,11 +135,10 @@ app.post('/api/generate-csr', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║ ECC CSR Generator Server                                             ║
-║ Running on http://localhost:${PORT}
-  
-   Open  the below link on your web browser   
-║ http://localhost:${PORT}/index.html 
+║ ECC CSR Generator Server (with mTLS extensions)                     ║
+║ Running on http://localhost:${PORT}                                 ║
+║ Open the below link on your web browser                             ║
+║ http://localhost:${PORT}/index.html                                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
   `);
 });
