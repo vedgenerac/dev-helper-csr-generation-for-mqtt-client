@@ -304,9 +304,13 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
             fs.writeFileSync(configPath, opensslConfig);
 
-            // Generate self-signed CA certificate
+            // Determine hash algorithm based on curve
+            const hashAlgorithm = curve === 'secp384r1' ? 'sha384' :
+                curve === 'secp521r1' ? 'sha512' : 'sha256';
+
+            // Generate self-signed CA certificate with appropriate hash
             await execAsync(
-                `openssl req -new -x509 -days ${validityDays} -key ${caKeyPath} -out ${caCertPath} -config ${configPath}`
+                `openssl req -new -x509 -${hashAlgorithm} -days ${validityDays} -key ${caKeyPath} -out ${caCertPath} -config ${configPath}`
             );
 
             // Read files
@@ -374,6 +378,7 @@ app.post('/api/sign-client-cert', async (req, res) => {
         const caCertPath = path.join(tempDir, 'ca-cert.pem');
         const certPath = path.join(tempDir, 'client-cert.pem');
         const configPath = path.join(tempDir, 'sign.cnf');
+        const serialPath = path.join(tempDir, 'ca-cert.srl');
 
         try {
             // Write files
@@ -396,9 +401,18 @@ extendedKeyUsage = clientAuth
             // Create serial file path in temp directory
             const serialPath = path.join(tempDir, 'ca-cert.srl');
 
-            // Sign the CSR
+            // Determine hash algorithm by examining the CA certificate
+            const { stdout: caInfo } = await execAsync(
+                `openssl x509 -in ${caCertPath} -text -noout | grep "Public-Key"`
+            );
+
+            // Match curve strength to hash: P-256->SHA256, P-384->SHA384, P-521->SHA512
+            const hashAlgorithm = caInfo.includes('384') ? 'sha384' :
+                caInfo.includes('521') ? 'sha512' : 'sha256';
+
+            // Sign the CSR with matching hash algorithm
             await execAsync(
-                `openssl x509 -req -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_client`
+                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_client`
             );
 
             // Read signed certificate
@@ -408,6 +422,7 @@ extendedKeyUsage = clientAuth
             const { stdout: certText } = await execAsync(
                 `openssl x509 -in ${certPath} -text -noout`
             );
+
 
             // Cleanup
             fs.unlinkSync(csrPath);
@@ -433,6 +448,7 @@ extendedKeyUsage = clientAuth
                 if (fs.existsSync(caCertPath)) fs.unlinkSync(caCertPath);
                 if (fs.existsSync(certPath)) fs.unlinkSync(certPath);
                 if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+                if (fs.existsSync(serialPath)) fs.unlinkSync(serialPath);
                 if (fs.existsSync(tempDir)) fs.rmdirSync(tempDir);
             } catch (e) { }
             throw error;
@@ -447,7 +463,7 @@ extendedKeyUsage = clientAuth
     }
 });
 
-// NEW: Sign Broker CSR with Root CA
+// Sign Broker CSR with Root CA
 app.post('/api/sign-broker-cert', async (req, res) => {
     try {
         const {
@@ -472,6 +488,7 @@ app.post('/api/sign-broker-cert', async (req, res) => {
         const caCertPath = path.join(tempDir, 'ca-cert.pem');
         const certPath = path.join(tempDir, 'broker-cert.pem');
         const configPath = path.join(tempDir, 'sign.cnf');
+        const serialPath = path.join(tempDir, 'ca-cert.srl');
 
         try {
             // Write files
@@ -508,12 +525,18 @@ ${sanSection}
 
             fs.writeFileSync(configPath, signingConfig);
 
-            // Create serial file path in temp directory
-            const serialPath = path.join(tempDir, 'ca-cert.srl');
+            // Determine hash algorithm by examining the CA certificate
+            const { stdout: caInfo } = await execAsync(
+                `openssl x509 -in ${caCertPath} -text -noout | grep "Public-Key"`
+            );
 
-            // Sign the CSR
+            // Match curve strength to hash: P-256->SHA256, P-384->SHA384, P-521->SHA512
+            const hashAlgorithm = caInfo.includes('384') ? 'sha384' :
+                caInfo.includes('521') ? 'sha512' : 'sha256';
+
+            // Sign the CSR with matching hash algorithm
             await execAsync(
-                `openssl x509 -req -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_broker`
+                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_broker`
             );
 
             // Read signed certificate
@@ -530,8 +553,8 @@ ${sanSection}
             fs.unlinkSync(caCertPath);
             fs.unlinkSync(certPath);
             fs.unlinkSync(configPath);
-            if (fs.existsSync(path.join(tempDir, 'ca-cert.srl'))) {
-                fs.unlinkSync(path.join(tempDir, 'ca-cert.srl'));
+            if (fs.existsSync(serialPath)) {
+                fs.unlinkSync(serialPath);
             }
             fs.rmdirSync(tempDir);
 
@@ -548,6 +571,7 @@ ${sanSection}
                 if (fs.existsSync(caCertPath)) fs.unlinkSync(caCertPath);
                 if (fs.existsSync(certPath)) fs.unlinkSync(certPath);
                 if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+                if (fs.existsSync(serialPath)) fs.unlinkSync(serialPath);
                 if (fs.existsSync(tempDir)) fs.rmdirSync(tempDir);
             } catch (e) { }
             throw error;
