@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSR Generator Helper Util(ECC)</title>
+    <title>MQTT Client CSR Generator</title>
     <style>
         * {
             margin: 0;
@@ -13,20 +13,20 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .container {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
             width: 100%;
             padding: 40px;
         }
@@ -50,8 +50,8 @@
         label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
+            color: #444;
+            font-weight: 600;
             font-size: 14px;
         }
 
@@ -59,7 +59,7 @@
         select {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e1e8ed;
             border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
@@ -71,32 +71,32 @@
             border-color: #667eea;
         }
 
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            display: block;
         }
 
-        button {
+        .btn-submit {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 14px 28px;
+            padding: 15px 30px;
             border-radius: 6px;
+            cursor: pointer;
             font-size: 16px;
             font-weight: 600;
-            cursor: pointer;
             width: 100%;
-            margin-top: 10px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 30px;
+            transition: transform 0.2s;
         }
 
-        button:hover {
+        .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
         }
 
-        button:disabled {
+        .btn-submit:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
@@ -107,248 +107,234 @@
             display: none;
         }
 
-        .output-section.visible {
-            display: block;
-        }
-
         .output-box {
             background: #f8f9fa;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 20px;
-            margin-bottom: 15px;
-        }
-
-        .output-label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .output-content {
-            background: white;
             padding: 15px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            word-break: break-all;
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-
-        .copy-btn {
-            background: #28a745;
-            padding: 6px 12px;
-            font-size: 12px;
-            width: auto;
-            margin: 0;
-        }
-
-        .copy-btn:hover {
-            background: #218838;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 12px;
             border-radius: 6px;
-            margin-bottom: 15px;
-            border: 1px solid #c3e6cb;
-        }
-
-        .info-box {
-            background: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #0c5460;
-        }
-
-        .warning-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 12px;
-            margin-top: 15px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #856404;
-        }
-
-        .loader {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .download-section {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
+            margin-top: 10px;
+            border: 2px solid #e1e8ed;
         }
 
         .download-btn {
-            background: #007bff;
-            flex: 1;
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-right: 10px;
+            font-size: 14px;
         }
 
         .download-btn:hover {
-            background: #0056b3;
+            background: #229954;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>🔐 ECC CSR Generator</h1>
-        <p class="subtitle">Generate Standards-Compliant PKCS#10 Certificate Signing Request</p>
-
-        <div class="info-box">
-            <strong>✓ Production Ready:</strong> Generates real PKCS#10 CSRs using OpenSSL. <br />Verify by running
-            below
-            command on your laptop:<br />
-            <code>openssl req -text -noout -verify -in csr.pem</code>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link" style="padding-right: 100px;">← Go to Index</a>
+            <a href="broker.html" class="nav-link" style="padding-left: 100px;">Go to Broker CSR Generator →</a>
         </div>
 
-        <form id="csrForm">
-            <div class="form-group">
-                <label for="curve">ECC Curve *</label>
-                <select id="curve" required>
-                    <option value="prime256v1">P-256 (prime256v1/secp256r1) - Recommended</option>
-                    <option value="secp384r1">P-384 (secp384r1)</option>
-                    <option value="secp521r1">P-521 (secp521r1)</option>
-                </select>
-            </div>
+        <h1>🔐 MQTT Client CSR Generator</h1>
+        <p class="subtitle">Generate ECC Certificate Signing Request for your MQTT Client</p>
 
+        <div class="error" id="errorMessage"></div>
+
+        <form id="csrForm">
+            <!-- Common Name -->
             <div class="form-group">
                 <label for="commonName">Common Name (CN) *</label>
-                <input type="text" id="commonName" placeholder="Enter userId" required>
+                <input type="text" id="commonName" name="commonName" placeholder="Enter userId" required>
                 <small style="display: block; margin-top: 5px; color: #666;">Example:
                     71baf012-534c-45ee-a1a5-4067037e9caa</small>
             </div>
 
+            <!-- Serial Number -->
             <div class="form-group">
                 <label for="serialNumber">Serial Number</label>
-                <input type="text" id="serialNumber" placeholder="Penguin Device Serial Number">
+                <input type="text" id="serialNumber" name="serialNumber" placeholder="Enter Penguin Gateway DeviceID">
                 <small style="display: block; margin-top: 5px; color: #666;">Example:
                     APCBPGN2102-CE243500C45</small>
             </div>
 
-            <div class="row">
-                <div class="form-group">
-                    <label for="organization">Organization (O) *</label>
-                    <input type="text" id="organization" placeholder="Organization Name"
-                        value="Generac Power Systems, Inc" required>
-                </div>
-                <div class="form-group">
-                    <label for="organizationalUnit">Organizational Unit (OU)</label>
-                    <input type="text" id="organizationalUnit" placeholder="Enter the Division or Team" value="PWRview">
-                </div>
+            <!-- Organization -->
+            <div class="form-group">
+                <label for="organization">Organization (O) *</label>
+                <input type="text" id="organization" placeholder="Organization Name" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example:
+                    Generac Power Systems</small>
             </div>
 
-            <div class="row">
-                <div class="form-group">
-                    <label for="country">Country (C) *</label>
-                    <input type="text" id="country" placeholder="Country Code" value="US" maxlength="2" required>
-                </div>
-                <div class="form-group">
-                    <label for="state">State/Province (ST) *</label>
-                    <input type="text" id="state" placeholder="State or Province Name" value="Texas" required>
-                </div>
+            <!-- Organizational Unit -->
+            <div class="form-group">
+                <label for="organizationalUnit">Organizational Unit (OU)</label>
+                <input type="text" id="organizationalUnit" placeholder="Enter the Division or Team">
+                <small style="display: block; margin-top: 5px; color: #666;">Example:
+                    PWRview</small>
             </div>
 
-            <div class="row">
-                <div class="form-group">
-                    <label for="locality">City/Locality (L) *</label>
-                    <input type="text" id="locality" placeholder="Enter Full City Name" value="The Woodlands" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="Enter email address(Optional)">
-                </div>
+            <!-- Country -->
+            <div class="form-group">
+                <label for="country">Country (C) *</label>
+                <input type="text" id="country" name="country" placeholder="Enter two-digit country" maxlength="2"
+                    required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example:
+                    US</small>
             </div>
 
-            <button type="submit" id="generateBtn">Generate CSR</button>
+            <!-- State -->
+            <div class="form-group">
+                <label for="state">State/Province (ST) *</label>
+                <input type="text" id="state" name="state" placeholder="Enter State" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example:
+                    Texas</small>
+            </div>
+
+            <!-- Locality -->
+            <div class="form-group">
+                <label for="locality">City/Locality (L) *</label>
+                <input type="text" id="locality" name="locality" placeholder="Enter City Name" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example:
+                    Woodlands</small>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="admin@example.com">
+            </div>
+
+            <!-- ECC Curve -->
+            <div class="form-group">
+                <label for="eccCurve">ECC Curve</label>
+                <select id="eccCurve" name="eccCurve">
+                    <option value="prime256v1" selected>prime256v1 (P-256) - Recommended</option>
+                    <option value="secp384r1">secp384r1 (P-384) - High Security</option>
+                    <option value="secp521r1">secp521r1 (P-521) - Maximum Security</option>
+                </select>
+                <span class="hint">Prime256v1 is most widely supported</span>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">Generate Client CSR</button>
+            <div class="loading" id="loading">⏳ Generating CSR...</div>
         </form>
 
-        <div id="output" class="output-section">
-            <div class="success-message">
-                ✓ CSR generated successfully!
+        <div class="output-section" id="outputSection">
+            <div class="success">
+                ✅ Client CSR Generated Successfully!
             </div>
 
             <div class="output-box">
-                <div class="output-label">
-                    <span>Certificate Signing Request (CSR)</span>
-                    <button class="copy-btn" onclick="copyToClipboard('csr')">Copy</button>
-                </div>
-                <div class="output-content" id="csr"></div>
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">Private Key</h3>
+                <pre id="privateKeyOutput"></pre>
+                <button class="download-btn"
+                    onclick="downloadFile('mqtt-client-key.pem', document.getElementById('privateKeyOutput').textContent)">
+                    💾 Download Private Key
+                </button>
             </div>
 
             <div class="output-box">
-                <div class="output-label">
-                    <span>Private Key (Keep this secure!)</span>
-                    <button class="copy-btn" onclick="copyToClipboard('privateKey')">Copy</button>
-                </div>
-                <div class="output-content" id="privateKey"></div>
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">Public Key</h3>
+                <pre id="publicKeyOutput"></pre>
+                <button class="download-btn"
+                    onclick="downloadFile('mqtt-client-public.pem', document.getElementById('publicKeyOutput').textContent)">
+                    💾 Download Public Key
+                </button>
             </div>
 
             <div class="output-box">
-                <div class="output-label">
-                    <span>Public Key</span>
-                    <button class="copy-btn" onclick="copyToClipboard('publicKey')">Copy</button>
-                </div>
-                <div class="output-content" id="publicKey"></div>
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">Certificate Signing Request (CSR)</h3>
+                <pre id="csrOutput"></pre>
+                <button class="download-btn"
+                    onclick="downloadFile('mqtt-client-csr.pem', document.getElementById('csrOutput').textContent)">
+                    💾 Download CSR
+                </button>
+                <button class="download-btn"
+                    onclick="copyToClipboard(document.getElementById('csrOutput').textContent)">
+                    📋 Copy CSR
+                </button>
             </div>
 
-            <div class="download-section">
-                <button class="download-btn"
-                    onclick="downloadFile('csr.pem', document.getElementById('csr').textContent)">Download CSR</button>
-                <button class="download-btn"
-                    onclick="downloadFile('private-key.pem', document.getElementById('privateKey').textContent)">Download
-                    Private Key</button>
-                <button class="download-btn"
-                    onclick="downloadFile('public-key.pem', document.getElementById('publicKey').textContent)">Download
-                    Public Key</button>
-            </div>
-
-            <div class="warning-box">
-                <strong>⚠️ Security:</strong> Store your private key securely. Never share it or commit it to version
-                control.
+            <div class="output-box">
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">CSR Details (Verification)</h3>
+                <pre id="csrDetailsOutput"></pre>
             </div>
         </div>
     </div>
 
     <script>
+        const API_URL = 'http://localhost:3000';
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
         document.getElementById('csrForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const btn = document.getElementById('generateBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="loader"></span>Generating...';
+            // Hide previous outputs and errors
+            document.getElementById('outputSection').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
 
+            // Collect form data
             const formData = {
-                curve: document.getElementById('curve').value,
                 commonName: document.getElementById('commonName').value,
                 serialNumber: document.getElementById('serialNumber').value,
                 organization: document.getElementById('organization').value,
@@ -356,13 +342,22 @@
                 country: document.getElementById('country').value.toUpperCase(),
                 state: document.getElementById('state').value,
                 locality: document.getElementById('locality').value,
-                email: document.getElementById('email').value
+                email: document.getElementById('email').value,
+                curve: document.getElementById('eccCurve').value
             };
 
+            // Show loading
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
             try {
-                const response = await fetch('http://localhost:3000/api/generate-csr', {
+                const response = await fetch(`${API_URL}/api/generate-csr`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify(formData)
                 });
 
@@ -372,36 +367,23 @@
                     throw new Error(result.error || 'Failed to generate CSR');
                 }
 
-                document.getElementById('csr').textContent = result.csr;
-                document.getElementById('privateKey').textContent = result.privateKey;
-                document.getElementById('publicKey').textContent = result.publicKey;
-                document.getElementById('output').classList.add('visible');
+                // Display results
+                document.getElementById('privateKeyOutput').textContent = result.privateKey;
+                document.getElementById('publicKeyOutput').textContent = result.publicKey;
+                document.getElementById('csrOutput').textContent = result.csr;
+                document.getElementById('csrDetailsOutput').textContent = result.csrDetails;
 
-                setTimeout(() => {
-                    document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
-                }, 100);
+                document.getElementById('outputSection').style.display = 'block';
+                document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth' });
 
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Error:', error);
+                showError(error.message || 'Failed to generate client CSR. Please check if the server is running.');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Generate CSR';
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
             }
         });
-
-        function copyToClipboard(elementId) {
-            const content = document.getElementById(elementId).textContent;
-            navigator.clipboard.writeText(content).then(() => {
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = 'Copied!';
-                btn.style.background = '#20c997';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '';
-                }, 2000);
-            });
-        }
 
         function downloadFile(filename, content) {
             const blob = new Blob([content], { type: 'text/plain' });
@@ -411,6 +393,15 @@
             a.download = filename;
             a.click();
             window.URL.revokeObjectURL(url);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('CSR copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
         }
     </script>
 </body>

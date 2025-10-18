@@ -262,16 +262,17 @@ ${sanSection}
 app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║ ECC CSR Generator Server (Client & Broker)                          ║
-║ Running on http://localhost:${PORT}                                 ║
+║ ECC CSR Generator Server (Client & Broker)                           ║
+║ Running on http://localhost:${PORT}                                  ║
 ║                                                                      ║
 ║ Endpoints:                                                           ║
-║ • Client CSR:  POST /api/generate-csr                               ║
-║ • Broker CSR:  POST /api/generate-broker-csr                        ║
+║ • Client CSR:  POST /api/generate-csr                                ║
+║ • Broker CSR:  POST /api/generate-broker-csr                         ║
 ║                                                                      ║
 ║ Web Interfaces:                                                      ║
+║ • Main Menu: http://localhost:${PORT}/index.html                     ║
 ║ • Client: http://localhost:${PORT}/client.html                       ║
-║ • Broker: http://localhost:${PORT}/broker.html                      ║
+║ • Broker: http://localhost:${PORT}/broker.html                       ║
 ╚══════════════════════════════════════════════════════════════════════╝
   `);
 });
