@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Authority Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            background: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #444;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #3498db;
+        }
+
+        .output-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .output-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 2px solid #e1e8ed;
+        }
+
+        .output-box h3 {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .download-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .download-btn:hover {
+            background: #229954;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .san-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .san-entry {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .san-entry input {
+            flex: 1;
+        }
+
+        .san-entry select {
+            width: 120px;
+        }
+
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-add {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">← Go to Index</a>
+                <div>
+                    <a href="client.html" class="nav-link">Client CSR</a>
+                    <span style="margin: 0 10px; color: #ccc;">|</span>
+                    <a href="broker.html" class="nav-link">Broker CSR</a>
+                </div>
+            </div>
+            <h1>🏛️ Certificate Authority Management</h1>
+            <p class="subtitle">Create Root CA and sign client/broker certificates</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">📜 Generate Root CA</button>
+            <button class="tab" onclick="switchTab(1)">✍️ Sign Client Certificate</button>
+            <button class="tab" onclick="switchTab(2)">✍️ Sign Broker Certificate</button>
+        </div>
+
+        <!-- Tab 1: Generate Root CA -->
+        <div class="tab-content active" id="tab-0">
+            <h2 style="margin-bottom: 20px; color: #333;">Generate Root CA Certificate</h2>
+            <div class="error" id="error-ca"></div>
+
+            <form id="caForm">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ca-commonName">Common Name (CN) *</label>
+                        <input type="text" id="ca-commonName" value="MQTT Root CA" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ca-organization">Organization (O) *</label>
+                        <input type="text" id="ca-organization" value="MQTT Organization" required>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ca-organizationalUnit">Organizational Unit (OU)</label>
+                        <input type="text" id="ca-organizationalUnit" placeholder="Security Department">
+                    </div>
+                    <div class="form-group">
+                        <label for="ca-country">Country (C) *</label>
+                        <input type="text" id="ca-country" value="US" maxlength="2" required>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ca-state">State/Province (ST) *</label>
+                        <input type="text" id="ca-state" value="California" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ca-locality">City/Locality (L) *</label>
+                        <input type="text" id="ca-locality" value="San Francisco" required>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ca-email">Email</label>
+                        <input type="email" id="ca-email" placeholder="admin@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="ca-curve">ECC Curve</label>
+                        <select id="ca-curve">
+                            <option value="prime256v1" selected>prime256v1 (P-256)</option>
+                            <option value="secp384r1">secp384r1 (P-384)</option>
+                            <option value="secp521r1">secp521r1 (P-521)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ca-validityDays">Validity Period (Days)</label>
+                    <input type="number" id="ca-validityDays" value="3650" min="1">
+                    <span class="hint">Default: 3650 days (10 years)</span>
+                </div>
+
+                <button type="submit" class="btn" id="caSubmitBtn">Generate Root CA</button>
+                <div class="loading" id="loading-ca">⏳ Generating Root CA...</div>
+            </form>
+
+            <div class="output-section" id="output-ca">
+                <div class="success">✅ Root CA Generated Successfully!</div>
+
+                <div class="output-box">
+                    <h3>CA Private Key (Keep Secure!)</h3>
+                    <pre id="ca-key-output"></pre>
+                    <button class="download-btn"
+                        onclick="downloadFile('ca-key.pem', document.getElementById('ca-key-output').textContent)">
+                        💾 Download CA Key
+                    </button>
+                </div>
+
+                <div class="output-box">
+                    <h3>CA Certificate</h3>
+                    <pre id="ca-cert-output"></pre>
+                    <button class="download-btn"
+                        onclick="downloadFile('ca-cert.pem', document.getElementById('ca-cert-output').textContent)">
+                        💾 Download CA Certificate
+                    </button>
+                </div>
+
+                <div class="output-box">
+                    <h3>Certificate Details</h3>
+                    <pre id="ca-details-output"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Sign Client Certificate -->
+        <div class="tab-content" id="tab-1">
+            <h2 style="margin-bottom: 20px; color: #333;">Sign Client Certificate</h2>
+            <div class="error" id="error-client"></div>
+
+            <form id="signClientForm">
+                <div class="form-group">
+                    <label for="client-csr">Client CSR *</label>
+                    <textarea id="client-csr" placeholder="-----BEGIN CERTIFICATE REQUEST-----" required></textarea>
+                    <span class="hint">Paste the CSR generated from the Client CSR Generator</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-ca-key">CA Private Key *</label>
+                    <textarea id="client-ca-key" placeholder="-----BEGIN EC PRIVATE KEY-----" required></textarea>
+                    <span class="hint">Paste the CA private key from Root CA generation</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-ca-cert">CA Certificate *</label>
+                    <textarea id="client-ca-cert" placeholder="-----BEGIN CERTIFICATE-----" required></textarea>
+                    <span class="hint">Paste the CA certificate from Root CA generation</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-validityDays">Validity Period (Days)</label>
+                    <input type="number" id="client-validityDays" value="365" min="1">
+                    <span class="hint">Default: 365 days (1 year)</span>
+                </div>
+
+                <button type="submit" class="btn" id="signClientBtn">Sign Client Certificate</button>
+                <div class="loading" id="loading-client">⏳ Signing Certificate...</div>
+            </form>
+
+            <div class="output-section" id="output-client">
+                <div class="success">✅ Client Certificate Signed Successfully!</div>
+
+                <div class="output-box">
+                    <h3>Signed Client Certificate</h3>
+                    <pre id="client-cert-output"></pre>
+                    <button class="download-btn"
+                        onclick="downloadFile('client-cert.pem', document.getElementById('client-cert-output').textContent)">
+                        💾 Download Client Certificate
+                    </button>
+                </div>
+
+                <div class="output-box">
+                    <h3>Certificate Details</h3>
+                    <pre id="client-details-output"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Sign Broker Certificate -->
+        <div class="tab-content" id="tab-2">
+            <h2 style="margin-bottom: 20px; color: #333;">Sign Broker Certificate</h2>
+            <div class="error" id="error-broker"></div>
+
+            <form id="signBrokerForm">
+                <div class="form-group">
+                    <label for="broker-csr">Broker CSR *</label>
+                    <textarea id="broker-csr" placeholder="-----BEGIN CERTIFICATE REQUEST-----" required></textarea>
+                    <span class="hint">Paste the CSR generated from the Broker CSR Generator</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="broker-ca-key">CA Private Key *</label>
+                    <textarea id="broker-ca-key" placeholder="-----BEGIN EC PRIVATE KEY-----" required></textarea>
+                    <span class="hint">Paste the CA private key from Root CA generation</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="broker-ca-cert">CA Certificate *</label>
+                    <textarea id="broker-ca-cert" placeholder="-----BEGIN CERTIFICATE-----" required></textarea>
+                    <span class="hint">Paste the CA certificate from Root CA generation</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Subject Alternative Names (SANs)</label>
+                    <span class="hint">Add the same SANs that were in your broker CSR</span>
+                    <div class="san-group" id="broker-sanContainer">
+                        <div class="san-entry">
+                            <select class="san-type">
+                                <option value="DNS">DNS</option>
+                                <option value="IP">IP</option>
+                            </select>
+                            <input type="text" class="san-value" placeholder="localhost" value="localhost">
+                            <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+                        </div>
+                        <div class="san-entry">
+                            <select class="san-type">
+                                <option value="DNS">DNS</option>
+                                <option value="IP" selected>IP</option>
+                            </select>
+                            <input type="text" class="san-value" placeholder="127.0.0.1" value="127.0.0.1">
+                            <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add" onclick="addSAN()">+ Add SAN</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="broker-validityDays">Validity Period (Days)</label>
+                    <input type="number" id="broker-validityDays" value="365" min="1">
+                    <span class="hint">Default: 365 days (1 year)</span>
+                </div>
+
+                <button type="submit" class="btn" id="signBrokerBtn">Sign Broker Certificate</button>
+                <div class="loading" id="loading-broker">⏳ Signing Certificate...</div>
+            </form>
+
+            <div class="output-section" id="output-broker">
+                <div class="success">✅ Broker Certificate Signed Successfully!</div>
+
+                <div class="output-box">
+                    <h3>Signed Broker Certificate</h3>
+                    <pre id="broker-cert-output"></pre>
+                    <button class="download-btn"
+                        onclick="downloadFile('broker-cert.pem', document.getElementById('broker-cert-output').textContent)">
+                        💾 Download Broker Certificate
+                    </button>
+                </div>
+
+                <div class="output-box">
+                    <h3>Certificate Details</h3>
+                    <pre id="broker-details-output"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('.tab-content').forEach((content, i) => {
+                content.classList.toggle('active', i === index);
+            });
+        }
+
+        function showError(elementId, message) {
+            const errorDiv = document.getElementById(elementId);
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function addSAN() {
+            const container = document.getElementById('broker-sanContainer');
+            const entry = document.createElement('div');
+            entry.className = 'san-entry';
+            entry.innerHTML = `
+                <select class="san-type">
+                    <option value="DNS">DNS</option>
+                    <option value="IP">IP</option>
+                </select>
+                <input type="text" class="san-value" placeholder="example.com or 192.168.1.1">
+                <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+            `;
+            container.appendChild(entry);
+        }
+
+        function removeSAN(btn) {
+            const entries = document.querySelectorAll('.san-entry');
+            if (entries.length > 1) {
+                btn.parentElement.remove();
+            } else {
+                alert('At least one SAN entry is required');
+            }
+        }
+
+        // Generate Root CA
+        document.getElementById('caForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            document.getElementById('output-ca').style.display = 'none';
+            document.getElementById('error-ca').style.display = 'none';
+
+            const submitBtn = document.getElementById('caSubmitBtn');
+            const loading = document.getElementById('loading-ca');
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const formData = {
+                    commonName: document.getElementById('ca-commonName').value,
+                    organization: document.getElementById('ca-organization').value,
+                    organizationalUnit: document.getElementById('ca-organizationalUnit').value,
+                    country: document.getElementById('ca-country').value.toUpperCase(),
+                    state: document.getElementById('ca-state').value,
+                    locality: document.getElementById('ca-locality').value,
+                    email: document.getElementById('ca-email').value,
+                    curve: document.getElementById('ca-curve').value,
+                    validityDays: parseInt(document.getElementById('ca-validityDays').value)
+                };
+
+                const response = await fetch(`${API_URL}/api/generate-root-ca`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to generate Root CA');
+                }
+
+                document.getElementById('ca-key-output').textContent = result.caKey;
+                document.getElementById('ca-cert-output').textContent = result.caCert;
+                document.getElementById('ca-details-output').textContent = result.certDetails;
+                document.getElementById('output-ca').style.display = 'block';
+                document.getElementById('output-ca').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                showError('error-ca', error.message || 'Failed to generate Root CA');
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // Sign Client Certificate
+        document.getElementById('signClientForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            document.getElementById('output-client').style.display = 'none';
+            document.getElementById('error-client').style.display = 'none';
+
+            const submitBtn = document.getElementById('signClientBtn');
+            const loading = document.getElementById('loading-client');
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const formData = {
+                    csr: document.getElementById('client-csr').value,
+                    caKey: document.getElementById('client-ca-key').value,
+                    caCert: document.getElementById('client-ca-cert').value,
+                    validityDays: parseInt(document.getElementById('client-validityDays').value)
+                };
+
+                const response = await fetch(`${API_URL}/api/sign-client-cert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to sign client certificate');
+                }
+
+                document.getElementById('client-cert-output').textContent = result.signedCert;
+                document.getElementById('client-details-output').textContent = result.certDetails;
+                document.getElementById('output-client').style.display = 'block';
+                document.getElementById('output-client').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                showError('error-client', error.message || 'Failed to sign client certificate');
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // Sign Broker Certificate
+        document.getElementById('signBrokerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            document.getElementById('output-broker').style.display = 'none';
+            document.getElementById('error-broker').style.display = 'none';
+
+            const submitBtn = document.getElementById('signBrokerBtn');
+            const loading = document.getElementById('loading-broker');
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const subjectAltNames = [];
+                document.querySelectorAll('.san-entry').forEach(entry => {
+                    const type = entry.querySelector('.san-type').value;
+                    const value = entry.querySelector('.san-value').value.trim();
+                    if (value) {
+                        subjectAltNames.push({ type, value });
+                    }
+                });
+
+                const formData = {
+                    csr: document.getElementById('broker-csr').value,
+                    caKey: document.getElementById('broker-ca-key').value,
+                    caCert: document.getElementById('broker-ca-cert').value,
+                    validityDays: parseInt(document.getElementById('broker-validityDays').value),
+                    subjectAltNames
+                };
+
+                const response = await fetch(`${API_URL}/api/sign-broker-cert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to sign broker certificate');
+                }
+
+                document.getElementById('broker-cert-output').textContent = result.signedCert;
+                document.getElementById('broker-details-output').textContent = result.certDetails;
+                document.getElementById('output-broker').style.display = 'block';
+                document.getElementById('output-broker').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                showError('error-broker', error.message || 'Failed to sign broker certificate');
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
