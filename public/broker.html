@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Broker CSR Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #444;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .san-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .san-entry {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .san-entry input {
+            flex: 1;
+        }
+
+        .san-entry select {
+            width: 120px;
+        }
+
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-add {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 30px;
+            transition: transform 0.2s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-add:hover,
+        .btn-remove:hover {
+            opacity: 0.8;
+        }
+
+        .output-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .output-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 2px solid #e1e8ed;
+        }
+
+        .download-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .download-btn:hover {
+            background: #229954;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="index.html" class="nav-link">← Back to Client CSR Generator</a>
+
+        <h1>🔐 MQTT Broker CSR Generator</h1>
+        <p class="subtitle">Generate ECC Certificate Signing Request for your MQTT Broker</p>
+
+        <div class="error" id="errorMessage"></div>
+
+        <form id="csrForm">
+            <!-- Common Name -->
+            <div class="form-group">
+                <label for="commonName">Common Name (CN) *</label>
+                <input type="text" id="commonName" name="commonName" value="localhost" required>
+                <span class="hint">Hostname or IP that clients use to connect (e.g., localhost, broker.example.com,
+                    192.168.1.100)</span>
+            </div>
+
+            <!-- Subject Alternative Names -->
+            <div class="form-group">
+                <label>Subject Alternative Names (SANs) *</label>
+                <span class="hint">Add all DNS names and IP addresses for your broker</span>
+                <div class="san-group" id="sanContainer">
+                    <div class="san-entry">
+                        <select class="san-type">
+                            <option value="DNS">DNS</option>
+                            <option value="IP">IP</option>
+                        </select>
+                        <input type="text" class="san-value" placeholder="localhost" value="localhost">
+                        <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+                    </div>
+                    <div class="san-entry">
+                        <select class="san-type">
+                            <option value="DNS">DNS</option>
+                            <option value="IP" selected>IP</option>
+                        </select>
+                        <input type="text" class="san-value" placeholder="127.0.0.1" value="127.0.0.1">
+                        <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-add" onclick="addSAN()">+ Add SAN</button>
+            </div>
+
+            <!-- Organization -->
+            <div class="form-group">
+                <label for="organization">Organization (O)</label>
+                <input type="text" id="organization" name="organization" placeholder="Your Organization">
+            </div>
+
+            <!-- Organizational Unit -->
+            <div class="form-group">
+                <label for="organizationalUnit">Organizational Unit (OU)</label>
+                <input type="text" id="organizationalUnit" name="organizationalUnit" placeholder="IT Department">
+            </div>
+
+            <!-- Country -->
+            <div class="form-group">
+                <label for="country">Country (C)</label>
+                <input type="text" id="country" name="country" placeholder="US" maxlength="2">
+                <span class="hint">Two-letter country code (e.g., US, UK, CA)</span>
+            </div>
+
+            <!-- State -->
+            <div class="form-group">
+                <label for="state">State/Province (ST)</label>
+                <input type="text" id="state" name="state" placeholder="California">
+            </div>
+
+            <!-- Locality -->
+            <div class="form-group">
+                <label for="locality">City/Locality (L)</label>
+                <input type="text" id="locality" name="locality" placeholder="San Francisco">
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="admin@example.com">
+            </div>
+
+            <!-- ECC Curve -->
+            <div class="form-group">
+                <label for="eccCurve">ECC Curve</label>
+                <select id="eccCurve" name="eccCurve">
+                    <option value="prime256v1" selected>prime256v1 (P-256) - Recommended</option>
+                    <option value="secp384r1">secp384r1 (P-384) - High Security</option>
+                    <option value="secp521r1">secp521r1 (P-521) - Maximum Security</option>
+                </select>
+                <span class="hint">Prime256v1 is most widely supported</span>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">Generate Broker CSR</button>
+            <div class="loading" id="loading">⏳ Generating CSR...</div>
+        </form>
+
+        <div class="output-section" id="outputSection">
+            <div class="success">
+                ✅ Broker CSR Generated Successfully!
+            </div>
+
+            <div class="output-box">
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">Private Key</h3>
+                <pre id="privateKeyOutput"></pre>
+                <button class="download-btn"
+                    onclick="downloadFile('mqtt-broker-key.pem', document.getElementById('privateKeyOutput').textContent)">
+                    💾 Download Private Key
+                </button>
+            </div>
+
+            <div class="output-box">
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">Public Key</h3>
+                <pre id="publicKeyOutput"></pre>
+                <button class="download-btn"
+                    onclick="downloadFile('mqtt-broker-public.pem', document.getElementById('publicKeyOutput').textContent)">
+                    💾 Download Public Key
+                </button>
+            </div>
+
+            <div class="output-box">
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">Certificate Signing Request (CSR)</h3>
+                <pre id="csrOutput"></pre>
+                <button class="download-btn"
+                    onclick="downloadFile('mqtt-broker-csr.pem', document.getElementById('csrOutput').textContent)">
+                    💾 Download CSR
+                </button>
+                <button class="download-btn"
+                    onclick="copyToClipboard(document.getElementById('csrOutput').textContent)">
+                    📋 Copy CSR
+                </button>
+            </div>
+
+            <div class="output-box">
+                <h3 style="margin-bottom: 10px; color: #555; font-size: 14px;">CSR Details (Verification)</h3>
+                <pre id="csrDetailsOutput"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        function addSAN() {
+            const container = document.getElementById('sanContainer');
+            const entry = document.createElement('div');
+            entry.className = 'san-entry';
+            entry.innerHTML = `
+                <select class="san-type">
+                    <option value="DNS">DNS</option>
+                    <option value="IP">IP</option>
+                </select>
+                <input type="text" class="san-value" placeholder="example.com or 192.168.1.1">
+                <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+            `;
+            container.appendChild(entry);
+        }
+
+        function removeSAN(btn) {
+            const entries = document.querySelectorAll('.san-entry');
+            if (entries.length > 1) {
+                btn.parentElement.remove();
+            } else {
+                alert('At least one SAN entry is required');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        document.getElementById('csrForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Hide previous outputs and errors
+            document.getElementById('outputSection').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+
+            // Collect form data
+            const formData = {
+                commonName: document.getElementById('commonName').value,
+                organization: document.getElementById('organization').value,
+                organizationalUnit: document.getElementById('organizationalUnit').value,
+                country: document.getElementById('country').value.toUpperCase(),
+                state: document.getElementById('state').value,
+                locality: document.getElementById('locality').value,
+                email: document.getElementById('email').value,
+                curve: document.getElementById('eccCurve').value,
+                subjectAltNames: []
+            };
+
+            // Collect SANs
+            document.querySelectorAll('.san-entry').forEach(entry => {
+                const type = entry.querySelector('.san-type').value;
+                const value = entry.querySelector('.san-value').value.trim();
+                if (value) {
+                    formData.subjectAltNames.push({ type, value });
+                }
+            });
+
+            // Show loading
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_URL}/api/generate-broker-csr`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to generate CSR');
+                }
+
+                // Display results
+                document.getElementById('privateKeyOutput').textContent = result.privateKey;
+                document.getElementById('publicKeyOutput').textContent = result.publicKey;
+                document.getElementById('csrOutput').textContent = result.csr;
+                document.getElementById('csrDetailsOutput').textContent = result.csrDetails;
+
+                document.getElementById('outputSection').style.display = 'block';
+                document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'Failed to generate broker CSR. Please check if the server is running.');
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('CSR copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+    </script>
+</body>
+
+</html>
