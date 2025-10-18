@@ -17,7 +17,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-// Existing Client CSR Generation Endpoint
+// Existing Client CSR Generation Endpoint with SAN
 app.post('/api/generate-csr', async (req, res) => {
     try {
         const {
@@ -29,7 +29,8 @@ app.post('/api/generate-csr', async (req, res) => {
             country,
             state,
             locality,
-            email
+            email,
+            subjectAltNames = []
         } = req.body;
 
         if (!commonName || !organization || !country || !state || !locality) {
@@ -49,7 +50,22 @@ app.post('/api/generate-csr', async (req, res) => {
             // Generate ECC private key
             await execAsync(`openssl ecparam -name ${curve} -genkey -noout -out ${privateKeyPath}`);
 
-            // Create OpenSSL config file with Key Usage extensions
+            // Build Subject Alternative Names section
+            let sanSection = '';
+            if (subjectAltNames && subjectAltNames.length > 0) {
+                const sanEntries = subjectAltNames
+                    .filter(san => san.value && san.value.trim())
+                    .map((san, index) => `${san.type}.${index + 1} = ${san.value.trim()}`)
+                    .join('\n');
+
+                if (sanEntries) {
+                    sanSection = `
+[ alt_names ]
+${sanEntries}`;
+                }
+            }
+
+            // Create OpenSSL config file with Key Usage extensions and SAN
             const opensslConfig = `
 [ req ]
 default_bits       = 2048
@@ -70,6 +86,8 @@ ${email ? `emailAddress = ${email}` : ''}
 [ v3_req ]
 keyUsage = critical, digitalSignature, keyAgreement
 extendedKeyUsage = clientAuth
+${subjectAltNames && subjectAltNames.length > 0 ? 'subjectAltName = @alt_names' : ''}
+${sanSection}
 `;
 
             fs.writeFileSync(configPath, opensslConfig);
@@ -252,7 +270,7 @@ ${sanSection}
     }
 });
 
-// NEW: Generate Root CA Certificate
+// Generate Root CA Certificate
 app.post('/api/generate-root-ca', async (req, res) => {
     try {
         const {
@@ -263,7 +281,7 @@ app.post('/api/generate-root-ca', async (req, res) => {
             country = 'US',
             state = 'California',
             locality = 'San Francisco',
-            validityDays = 3650, // 10 years
+            validityDays = 3650,
             email
         } = req.body;
 
@@ -354,7 +372,7 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
     }
 });
 
-// NEW: Sign Client CSR with Root CA
+// UPDATED: Sign Client CSR with Root CA (now preserves SAN from CSR)
 app.post('/api/sign-client-cert', async (req, res) => {
     try {
         const {
@@ -387,6 +405,7 @@ app.post('/api/sign-client-cert', async (req, res) => {
             fs.writeFileSync(caCertPath, caCert);
 
             // Create signing config with client extensions
+            // IMPORTANT: copy_extensions = copy preserves SAN from CSR
             const signingConfig = `
 [ v3_client ]
 basicConstraints = CA:FALSE
@@ -398,21 +417,18 @@ extendedKeyUsage = clientAuth
 
             fs.writeFileSync(configPath, signingConfig);
 
-            // Create serial file path in temp directory
-            const serialPath = path.join(tempDir, 'ca-cert.srl');
-
             // Determine hash algorithm by examining the CA certificate
             const { stdout: caInfo } = await execAsync(
                 `openssl x509 -in ${caCertPath} -text -noout | grep "Public-Key"`
             );
 
-            // Match curve strength to hash: P-256->SHA256, P-384->SHA384, P-521->SHA512
             const hashAlgorithm = caInfo.includes('384') ? 'sha384' :
                 caInfo.includes('521') ? 'sha512' : 'sha256';
 
             // Sign the CSR with matching hash algorithm
+            // CRITICAL: -copy_extensions copyall preserves SAN from CSR
             await execAsync(
-                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_client`
+                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_client -copy_extensions copyall`
             );
 
             // Read signed certificate
@@ -422,7 +438,6 @@ extendedKeyUsage = clientAuth
             const { stdout: certText } = await execAsync(
                 `openssl x509 -in ${certPath} -text -noout`
             );
-
 
             // Cleanup
             fs.unlinkSync(csrPath);
@@ -530,13 +545,12 @@ ${sanSection}
                 `openssl x509 -in ${caCertPath} -text -noout | grep "Public-Key"`
             );
 
-            // Match curve strength to hash: P-256->SHA256, P-384->SHA384, P-521->SHA512
             const hashAlgorithm = caInfo.includes('384') ? 'sha384' :
                 caInfo.includes('521') ? 'sha512' : 'sha256';
 
             // Sign the CSR with matching hash algorithm
             await execAsync(
-                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_broker`
+                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_broker -copy_extensions copyall`
             );
 
             // Read signed certificate

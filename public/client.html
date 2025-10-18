@@ -177,6 +177,72 @@
         .nav-link:hover {
             text-decoration: underline;
         }
+
+        /* SAN Styles */
+        .san-section {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border: 2px solid #667eea;
+        }
+
+        .san-header {
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .san-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: flex-start;
+        }
+
+        .san-type {
+            width: 100px;
+        }
+
+        .san-value {
+            flex: 1;
+        }
+
+        .san-remove {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .san-add {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .san-add:hover {
+            background: #2980b9;
+        }
+
+        .ios-note {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
     </style>
 </head>
 
@@ -267,6 +333,26 @@
                 <span class="hint">Prime256v1 is most widely supported</span>
             </div>
 
+            <!-- Subject Alternative Names Section -->
+            <div class="san-section">
+                <div class="san-header">📱 Subject Alternative Names (SAN) - Required for iOS</div>
+                <div class="ios-note">
+                    <strong>⚠️ Important for iOS/React Native:</strong> iOS requires SAN extension for certificate
+                    validation.
+                    Add at least one DNS or IP entry that matches your connection hostname.
+                </div>
+
+                <div id="sanContainer" style="margin-top: 15px;">
+                    <!-- SAN items will be added here dynamically -->
+                </div>
+
+                <button type="button" class="san-add" onclick="addSanField()">+ Add SAN Entry</button>
+                <button type="button" class="san-add" onclick="addDefaultSans()"
+                    style="background: #27ae60; margin-left: 10px;">
+                    + Add iOS Defaults
+                </button>
+            </div>
+
             <button type="submit" class="btn-submit" id="submitBtn">Generate Client CSR</button>
             <div class="loading" id="loading">⏳ Generating CSR...</div>
         </form>
@@ -316,6 +402,64 @@
 
     <script>
         const API_URL = 'http://localhost:3000';
+        let sanCounter = 0;
+
+        // Add a SAN field
+        function addSanField(type = 'DNS', value = '') {
+            const container = document.getElementById('sanContainer');
+            const sanItem = document.createElement('div');
+            sanItem.className = 'san-item';
+            sanItem.id = `san-${sanCounter}`;
+
+            sanItem.innerHTML = `
+                <select class="san-type" data-san-id="${sanCounter}">
+                    <option value="DNS" ${type === 'DNS' ? 'selected' : ''}>DNS</option>
+                    <option value="IP" ${type === 'IP' ? 'selected' : ''}>IP Address</option>
+                </select>
+                <input type="text" class="san-value" placeholder="localhost or 127.0.0.1" 
+                       value="${value}" data-san-id="${sanCounter}">
+                <button type="button" class="san-remove" onclick="removeSanField(${sanCounter})">✕</button>
+            `;
+
+            container.appendChild(sanItem);
+            sanCounter++;
+        }
+
+        // Remove a SAN field
+        function removeSanField(id) {
+            const element = document.getElementById(`san-${id}`);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        // Add default SANs for iOS
+        function addDefaultSans() {
+            addSanField('DNS', 'localhost');
+            addSanField('IP', '127.0.0.1');
+            addSanField('IP', '::1');
+        }
+
+        // Collect SAN data from form
+        function collectSans() {
+            const sans = [];
+            const container = document.getElementById('sanContainer');
+            const sanItems = container.querySelectorAll('.san-item');
+
+            sanItems.forEach(item => {
+                const typeSelect = item.querySelector('.san-type');
+                const valueInput = item.querySelector('.san-value');
+
+                if (valueInput.value.trim()) {
+                    sans.push({
+                        type: typeSelect.value,
+                        value: valueInput.value.trim()
+                    });
+                }
+            });
+
+            return sans;
+        }
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -343,7 +487,8 @@
                 state: document.getElementById('state').value,
                 locality: document.getElementById('locality').value,
                 email: document.getElementById('email').value,
-                curve: document.getElementById('eccCurve').value
+                curve: document.getElementById('eccCurve').value,
+                subjectAltNames: collectSans() // NEW: Collect SAN data
             };
 
             // Show loading
@@ -403,6 +548,9 @@
                 alert('Failed to copy to clipboard');
             });
         }
+
+        // Initialize with one empty SAN field
+        addSanField();
     </script>
 </body>
 
