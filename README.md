@@ -54,7 +54,7 @@ You should see a message indicating the server is running:╔══════�
 
 ### 2. Access the Application:
 
-Open your web browser and navigate to:http://localhost:3000/index.html
+Open your web browser and navigate to:http://localhost:3000/client.html
 
 
 The ECC CSR Generator interface should load, allowing you to input details and generate a CSR.
@@ -85,7 +85,7 @@ Keep the generated Private Key secure and never share it or commit it to version
 ## Troubleshooting
 
 ### CORS Issues: 
-    Ensure index.html is served via http://localhost:3000/index.html. If using a different port (e.g., http://localhost:8080), update the cors configuration in server.js to match the origin.
+    Ensure index.html is served via http://localhost:3000/client.html. If using a different port (e.g., http://localhost:8080), update the cors configuration in server.js to match the origin.
 ### OpenSSL Errors: 
     Verify OpenSSL is installed and accessible from the command line (e.g., run openssl version).
 ### Server Not Running: 
