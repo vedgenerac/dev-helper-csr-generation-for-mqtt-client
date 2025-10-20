@@ -17,7 +17,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-// Existing Client CSR Generation Endpoint with SAN
+// Client CSR Generation Endpoint with SAN Support
 app.post('/api/generate-csr', async (req, res) => {
     try {
         const {
@@ -122,7 +122,8 @@ ${sanSection}
                 privateKey,
                 publicKey,
                 csr,
-                csrDetails: csrText
+                csrDetails: csrText,
+                subjectAltNames // Return SAN for signing endpoint
             });
 
         } catch (error) {
@@ -248,7 +249,8 @@ ${sanSection}
                 publicKey,
                 csr,
                 csrDetails: csrText,
-                type: 'broker'
+                type: 'broker',
+                subjectAltNames
             });
 
         } catch (error) {
@@ -372,14 +374,15 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
     }
 });
 
-// UPDATED: Sign Client CSR with Root CA (now preserves SAN from CSR)
+// Sign Client CSR - LibreSSL Compatible (manually add SAN)
 app.post('/api/sign-client-cert', async (req, res) => {
     try {
         const {
             csr,
             caKey,
             caCert,
-            validityDays = 365
+            validityDays = 365,
+            subjectAltNames = [] // Accept SAN from frontend
         } = req.body;
 
         if (!csr || !caKey || !caCert) {
@@ -404,8 +407,22 @@ app.post('/api/sign-client-cert', async (req, res) => {
             fs.writeFileSync(caKeyPath, caKey);
             fs.writeFileSync(caCertPath, caCert);
 
-            // Create signing config with client extensions
-            // IMPORTANT: copy_extensions = copy preserves SAN from CSR
+            // Build Subject Alternative Names section
+            let sanSection = '';
+            if (subjectAltNames && subjectAltNames.length > 0) {
+                const sanEntries = subjectAltNames
+                    .filter(san => san.value && san.value.trim())
+                    .map((san, index) => `${san.type}.${index + 1} = ${san.value.trim()}`)
+                    .join('\n');
+
+                if (sanEntries) {
+                    sanSection = `
+[ alt_names ]
+${sanEntries}`;
+                }
+            }
+
+            // Create signing config with client extensions and SAN
             const signingConfig = `
 [ v3_client ]
 basicConstraints = CA:FALSE
@@ -413,6 +430,8 @@ subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
 keyUsage = critical, digitalSignature, keyAgreement
 extendedKeyUsage = clientAuth
+${subjectAltNames && subjectAltNames.length > 0 ? 'subjectAltName = @alt_names' : ''}
+${sanSection}
 `;
 
             fs.writeFileSync(configPath, signingConfig);
@@ -425,10 +444,9 @@ extendedKeyUsage = clientAuth
             const hashAlgorithm = caInfo.includes('384') ? 'sha384' :
                 caInfo.includes('521') ? 'sha512' : 'sha256';
 
-            // Sign the CSR with matching hash algorithm
-            // CRITICAL: -copy_extensions copyall preserves SAN from CSR
+            // Sign the CSR - LibreSSL compatible (no -copy_extensions flag)
             await execAsync(
-                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_client -copy_extensions copyall`
+                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_client`
             );
 
             // Read signed certificate
@@ -548,9 +566,9 @@ ${sanSection}
             const hashAlgorithm = caInfo.includes('384') ? 'sha384' :
                 caInfo.includes('521') ? 'sha512' : 'sha256';
 
-            // Sign the CSR with matching hash algorithm
+            // Sign the CSR - LibreSSL compatible (no -copy_extensions flag)
             await execAsync(
-                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_broker -copy_extensions copyall`
+                `openssl x509 -req -${hashAlgorithm} -in ${csrPath} -CA ${caCertPath} -CAkey ${caKeyPath} -CAcreateserial -CAserial ${serialPath} -out ${certPath} -days ${validityDays} -extfile ${configPath} -extensions v3_broker`
             );
 
             // Read signed certificate
@@ -603,7 +621,7 @@ ${sanSection}
 app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║ ECC CSR Generator Server (Client & Broker + CA)                     ║
+║ ECC CSR Generator Server (Client & Broker + CA) - LibreSSL Ready    ║
 ║ Running on http://localhost:${PORT}                                 ║
 ║                                                                      ║
 ║ Endpoints:                                                           ║

@@ -262,75 +262,69 @@
             <!-- Common Name -->
             <div class="form-group">
                 <label for="commonName">Common Name (CN) *</label>
-                <input type="text" id="commonName" name="commonName" placeholder="Enter userId" required>
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    71baf012-534c-45ee-a1a5-4067037e9caa</small>
+                <input type="text" id="commonName" name="commonName" placeholder="localhost or your hostname" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example: localhost, device-id, or
+                    user-id</small>
             </div>
 
             <!-- Serial Number -->
             <div class="form-group">
                 <label for="serialNumber">Serial Number</label>
-                <input type="text" id="serialNumber" name="serialNumber" placeholder="Enter Penguin Gateway DeviceID">
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    APCBPGN2102-CE243500C45</small>
+                <input type="text" id="serialNumber" name="serialNumber" placeholder="Device serial number (optional)">
+                <small style="display: block; margin-top: 5px; color: #666;">Example: APCBPGN2102-CE243500C45</small>
             </div>
 
             <!-- Organization -->
             <div class="form-group">
                 <label for="organization">Organization (O) *</label>
-                <input type="text" id="organization" placeholder="Organization Name" required>
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    Generac Power Systems</small>
+                <input type="text" id="organization" placeholder="Your Organization Name" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example: Acme Corporation</small>
             </div>
 
             <!-- Organizational Unit -->
             <div class="form-group">
                 <label for="organizationalUnit">Organizational Unit (OU)</label>
-                <input type="text" id="organizationalUnit" placeholder="Enter the Division or Team">
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    PWRview</small>
+                <input type="text" id="organizationalUnit" placeholder="Department or Division (optional)">
+                <small style="display: block; margin-top: 5px; color: #666;">Example: Engineering, IoT Team</small>
             </div>
 
             <!-- Country -->
             <div class="form-group">
                 <label for="country">Country (C) *</label>
-                <input type="text" id="country" name="country" placeholder="Enter two-digit country" maxlength="2"
+                <input type="text" id="country" name="country" placeholder="Two-letter country code" maxlength="2"
                     required>
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    US</small>
+                <small style="display: block; margin-top: 5px; color: #666;">Example: US, GB, DE</small>
             </div>
 
             <!-- State -->
             <div class="form-group">
                 <label for="state">State/Province (ST) *</label>
-                <input type="text" id="state" name="state" placeholder="Enter State" required>
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    Texas</small>
+                <input type="text" id="state" name="state" placeholder="Your State or Province" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example: California, Texas</small>
             </div>
 
             <!-- Locality -->
             <div class="form-group">
                 <label for="locality">City/Locality (L) *</label>
-                <input type="text" id="locality" name="locality" placeholder="Enter City Name" required>
-                <small style="display: block; margin-top: 5px; color: #666;">Example:
-                    Woodlands</small>
+                <input type="text" id="locality" name="locality" placeholder="Your City" required>
+                <small style="display: block; margin-top: 5px; color: #666;">Example: San Francisco, Austin</small>
             </div>
 
             <!-- Email -->
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" placeholder="admin@example.com">
+                <input type="email" id="email" name="email" placeholder="admin@example.com (optional)">
             </div>
 
             <!-- ECC Curve -->
             <div class="form-group">
                 <label for="eccCurve">ECC Curve</label>
                 <select id="eccCurve" name="eccCurve">
-                    <option value="prime256v1">prime256v1 (P-256) - Recommended</option>
-                    <option value="secp384r1" selected>secp384r1 (P-384) - High Security</option>
+                    <option value="prime256v1" selected>prime256v1 (P-256) - Recommended for iOS</option>
+                    <option value="secp384r1">secp384r1 (P-384) - High Security</option>
                     <option value="secp521r1">secp521r1 (P-521) - Maximum Security</option>
                 </select>
-                <span class="hint">Prime256v1 is most widely supported</span>
+                <span class="hint">Prime256v1 is most widely supported and best for iOS</span>
             </div>
 
             <!-- Subject Alternative Names Section -->
@@ -349,7 +343,7 @@
                 <button type="button" class="san-add" onclick="addSanField()">+ Add SAN Entry</button>
                 <button type="button" class="san-add" onclick="addDefaultSans()"
                     style="background: #27ae60; margin-left: 10px;">
-                    + Add iOS Defaults
+                    + Add iOS Defaults (localhost)
                 </button>
             </div>
 
@@ -435,6 +429,10 @@
 
         // Add default SANs for iOS
         function addDefaultSans() {
+            // Clear existing
+            document.getElementById('sanContainer').innerHTML = '';
+            sanCounter = 0;
+            // Add defaults
             addSanField('DNS', 'localhost');
             addSanField('IP', '127.0.0.1');
             addSanField('IP', '::1');
@@ -477,6 +475,14 @@
             document.getElementById('outputSection').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'none';
 
+            // Collect SAN data
+            const subjectAltNames = collectSans();
+
+            if (subjectAltNames.length === 0) {
+                showError('Please add at least one SAN entry! Click "Add iOS Defaults" for automatic setup.');
+                return;
+            }
+
             // Collect form data
             const formData = {
                 commonName: document.getElementById('commonName').value,
@@ -488,7 +494,7 @@
                 locality: document.getElementById('locality').value,
                 email: document.getElementById('email').value,
                 curve: document.getElementById('eccCurve').value,
-                subjectAltNames: collectSans() // NEW: Collect SAN data
+                subjectAltNames: subjectAltNames // Include SAN data
             };
 
             // Show loading
@@ -498,6 +504,8 @@
             loading.style.display = 'block';
 
             try {
+                console.log('Generating CSR with SAN:', formData.subjectAltNames);
+
                 const response = await fetch(`${API_URL}/api/generate-csr`, {
                     method: 'POST',
                     headers: {
@@ -510,6 +518,13 @@
 
                 if (!response.ok) {
                     throw new Error(result.error || 'Failed to generate CSR');
+                }
+
+                // Check if SAN is present in CSR
+                const hasSAN = result.csrDetails.includes('Subject Alternative Name');
+
+                if (!hasSAN) {
+                    showError('Warning: SAN might be missing from CSR. Please check the output below.');
                 }
 
                 // Display results
@@ -550,7 +565,9 @@
         }
 
         // Initialize with one empty SAN field
-        addSanField();
+        window.onload = function () {
+            addSanField();
+        };
     </script>
 </body>
 

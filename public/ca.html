@@ -164,10 +164,6 @@
             transform: none;
         }
 
-        .btn-secondary {
-            background: #3498db;
-        }
-
         .output-section {
             margin-top: 30px;
             display: none;
@@ -236,6 +232,15 @@
             background: #d4edda;
             border: 2px solid #28a745;
             color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
             padding: 15px;
             border-radius: 6px;
             margin-top: 15px;
@@ -328,11 +333,11 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label for="ca-commonName">Common Name (CN) *</label>
-                        <input type="text" id="ca-commonName" value="MQTT Root CA" required>
+                        <input type="text" id="ca-commonName" placeholder="MQTT Root CA" required>
                     </div>
                     <div class="form-group">
                         <label for="ca-organization">Organization (O) *</label>
-                        <input type="text" id="ca-organization" value="MQTT Organization" required>
+                        <input type="text" id="ca-organization" placeholder="Your Organization" required>
                     </div>
                 </div>
 
@@ -343,18 +348,18 @@
                     </div>
                     <div class="form-group">
                         <label for="ca-country">Country (C) *</label>
-                        <input type="text" id="ca-country" value="US" maxlength="2" required>
+                        <input type="text" id="ca-country" placeholder="US" maxlength="2" required>
                     </div>
                 </div>
 
                 <div class="grid-2">
                     <div class="form-group">
                         <label for="ca-state">State/Province (ST) *</label>
-                        <input type="text" id="ca-state" value="California" required>
+                        <input type="text" id="ca-state" placeholder="California" required>
                     </div>
                     <div class="form-group">
                         <label for="ca-locality">City/Locality (L) *</label>
-                        <input type="text" id="ca-locality" value="San Francisco" required>
+                        <input type="text" id="ca-locality" placeholder="San Francisco" required>
                     </div>
                 </div>
 
@@ -366,8 +371,8 @@
                     <div class="form-group">
                         <label for="ca-curve">ECC Curve</label>
                         <select id="ca-curve">
-                            <option value="prime256v1">prime256v1 (P-256)</option>
-                            <option value="secp384r1" selected>secp384r1 (P-384)</option>
+                            <option value="prime256v1" selected>prime256v1 (P-256)</option>
+                            <option value="secp384r1">secp384r1 (P-384)</option>
                             <option value="secp521r1">secp521r1 (P-521)</option>
                         </select>
                     </div>
@@ -414,6 +419,10 @@
         <!-- Tab 2: Sign Client Certificate -->
         <div class="tab-content" id="tab-1">
             <h2 style="margin-bottom: 20px; color: #333;">Sign Client Certificate</h2>
+            <div class="warning">
+                <strong>⚠️ Important for iOS:</strong> You must add the same Subject Alternative Names (SAN) that were
+                in your CSR!
+            </div>
             <div class="error" id="error-client"></div>
 
             <form id="signClientForm">
@@ -436,6 +445,24 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Subject Alternative Names (SANs) - Required for iOS! *</label>
+                    <span class="hint">Add the SAME SANs that were in your client CSR</span>
+                    <div class="san-group" id="client-sanContainer">
+                        <div class="san-entry">
+                            <select class="san-type">
+                                <option value="DNS">DNS</option>
+                                <option value="IP">IP</option>
+                            </select>
+                            <input type="text" class="san-value" placeholder="localhost">
+                            <button type="button" class="btn-remove" onclick="removeClientSAN(this)">Remove</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add" onclick="addClientSAN()">+ Add SAN</button>
+                    <button type="button" class="btn-add" onclick="addClientDefaultSANs()"
+                        style="background: #27ae60;">+ Add iOS Defaults</button>
+                </div>
+
+                <div class="form-group">
                     <label for="client-validityDays">Validity Period (Days)</label>
                     <input type="number" id="client-validityDays" value="365" min="1">
                     <span class="hint">Default: 365 days (1 year)</span>
@@ -446,7 +473,7 @@
             </form>
 
             <div class="output-section" id="output-client">
-                <div class="success">✅ Client Certificate Signed Successfully!</div>
+                <div class="success" id="client-success">✅ Client Certificate Signed Successfully!</div>
 
                 <div class="output-box">
                     <h3>Signed Client Certificate</h3>
@@ -489,7 +516,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Subject Alternative Names (SANs)</label>
+                    <label>Subject Alternative Names (SANs) *</label>
                     <span class="hint">Add the same SANs that were in your broker CSR</span>
                     <div class="san-group" id="broker-sanContainer">
                         <div class="san-entry">
@@ -497,19 +524,11 @@
                                 <option value="DNS">DNS</option>
                                 <option value="IP">IP</option>
                             </select>
-                            <input type="text" class="san-value" placeholder="localhost" value="localhost">
-                            <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
-                        </div>
-                        <div class="san-entry">
-                            <select class="san-type">
-                                <option value="DNS">DNS</option>
-                                <option value="IP" selected>IP</option>
-                            </select>
-                            <input type="text" class="san-value" placeholder="127.0.0.1" value="127.0.0.1">
-                            <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+                            <input type="text" class="san-value" placeholder="localhost">
+                            <button type="button" class="btn-remove" onclick="removeBrokerSAN(this)">Remove</button>
                         </div>
                     </div>
-                    <button type="button" class="btn-add" onclick="addSAN()">+ Add SAN</button>
+                    <button type="button" class="btn-add" onclick="addBrokerSAN()">+ Add SAN</button>
                 </div>
 
                 <div class="form-group">
@@ -573,7 +592,59 @@
             window.URL.revokeObjectURL(url);
         }
 
-        function addSAN() {
+        // Client SAN functions
+        function addClientSAN() {
+            const container = document.getElementById('client-sanContainer');
+            const entry = document.createElement('div');
+            entry.className = 'san-entry';
+            entry.innerHTML = `
+                <select class="san-type">
+                    <option value="DNS">DNS</option>
+                    <option value="IP">IP</option>
+                </select>
+                <input type="text" class="san-value" placeholder="example.com or 192.168.1.1">
+                <button type="button" class="btn-remove" onclick="removeClientSAN(this)">Remove</button>
+            `;
+            container.appendChild(entry);
+        }
+
+        function removeClientSAN(btn) {
+            const entries = document.querySelectorAll('#client-sanContainer .san-entry');
+            if (entries.length > 1) {
+                btn.parentElement.remove();
+            } else {
+                alert('At least one SAN entry is required for iOS compatibility');
+            }
+        }
+
+        function addClientDefaultSANs() {
+            const container = document.getElementById('client-sanContainer');
+            container.innerHTML = '';
+
+            // Add default SAN entries
+            const defaults = [
+                { type: 'DNS', value: 'localhost' },
+                { type: 'IP', value: '127.0.0.1' },
+                { type: 'IP', value: '::1' }
+            ];
+
+            defaults.forEach(san => {
+                const entry = document.createElement('div');
+                entry.className = 'san-entry';
+                entry.innerHTML = `
+                    <select class="san-type">
+                        <option value="DNS" ${san.type === 'DNS' ? 'selected' : ''}>DNS</option>
+                        <option value="IP" ${san.type === 'IP' ? 'selected' : ''}>IP</option>
+                    </select>
+                    <input type="text" class="san-value" value="${san.value}">
+                    <button type="button" class="btn-remove" onclick="removeClientSAN(this)">Remove</button>
+                `;
+                container.appendChild(entry);
+            });
+        }
+
+        // Broker SAN functions
+        function addBrokerSAN() {
             const container = document.getElementById('broker-sanContainer');
             const entry = document.createElement('div');
             entry.className = 'san-entry';
@@ -583,13 +654,13 @@
                     <option value="IP">IP</option>
                 </select>
                 <input type="text" class="san-value" placeholder="example.com or 192.168.1.1">
-                <button type="button" class="btn-remove" onclick="removeSAN(this)">Remove</button>
+                <button type="button" class="btn-remove" onclick="removeBrokerSAN(this)">Remove</button>
             `;
             container.appendChild(entry);
         }
 
-        function removeSAN(btn) {
-            const entries = document.querySelectorAll('.san-entry');
+        function removeBrokerSAN(btn) {
+            const entries = document.querySelectorAll('#broker-sanContainer .san-entry');
             if (entries.length > 1) {
                 btn.parentElement.remove();
             } else {
@@ -661,12 +732,29 @@
             loading.style.display = 'block';
 
             try {
+                // Collect SANs for client certificate
+                const subjectAltNames = [];
+                document.querySelectorAll('#client-sanContainer .san-entry').forEach(entry => {
+                    const type = entry.querySelector('.san-type').value;
+                    const value = entry.querySelector('.san-value').value.trim();
+                    if (value) {
+                        subjectAltNames.push({ type, value });
+                    }
+                });
+
+                if (subjectAltNames.length === 0) {
+                    throw new Error('At least one SAN entry is required for iOS compatibility!');
+                }
+
                 const formData = {
                     csr: document.getElementById('client-csr').value,
                     caKey: document.getElementById('client-ca-key').value,
                     caCert: document.getElementById('client-ca-cert').value,
-                    validityDays: parseInt(document.getElementById('client-validityDays').value)
+                    validityDays: parseInt(document.getElementById('client-validityDays').value),
+                    subjectAltNames: subjectAltNames // CRITICAL: Pass SAN!
                 };
+
+                console.log('Signing client certificate with SAN:', formData.subjectAltNames);
 
                 const response = await fetch(`${API_URL}/api/sign-client-cert`, {
                     method: 'POST',
@@ -680,10 +768,27 @@
                     throw new Error(result.error || 'Failed to sign client certificate');
                 }
 
+                // Check if SAN is in the signed certificate
+                const hasSAN = result.certDetails.includes('Subject Alternative Name');
+
                 document.getElementById('client-cert-output').textContent = result.signedCert;
                 document.getElementById('client-details-output').textContent = result.certDetails;
+
+                const successDiv = document.getElementById('client-success');
+                if (hasSAN) {
+                    successDiv.innerHTML = '✅ Client Certificate Signed Successfully!<br>✅ SAN is present - iOS compatible!';
+                    successDiv.className = 'success';
+                } else {
+                    successDiv.innerHTML = '⚠️ Certificate signed but SAN is MISSING!<br>❌ This will NOT work with iOS!';
+                    successDiv.className = 'error';
+                }
+
                 document.getElementById('output-client').style.display = 'block';
                 document.getElementById('output-client').scrollIntoView({ behavior: 'smooth' });
+
+                if (!hasSAN) {
+                    alert('⚠️ WARNING: SAN is missing from the signed certificate!\n\nThis will cause SSL error -9824 on iOS.');
+                }
 
             } catch (error) {
                 showError('error-client', error.message || 'Failed to sign client certificate');
@@ -707,7 +812,7 @@
 
             try {
                 const subjectAltNames = [];
-                document.querySelectorAll('.san-entry').forEach(entry => {
+                document.querySelectorAll('#broker-sanContainer .san-entry').forEach(entry => {
                     const type = entry.querySelector('.san-type').value;
                     const value = entry.querySelector('.san-value').value.trim();
                     if (value) {
